@@ -106,7 +106,7 @@ if sys.argv[1] == '-v':
     i += 1
         
 inventoryfile = sys.argv[i]
-testset = set(sys.argv[i+1])
+testset = set(sys.argv[i+1].split(','))
 
 fd, allsegments = readinventory(inventoryfile)
 features = [f for f in fd]
