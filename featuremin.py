@@ -5,7 +5,8 @@ def readinventory(filename):
     featdict = {}
     allsegments = set()
 
-    lines = [line.strip() for line in open(filename)]
+    with open(filename, encoding='utf-8') as f:
+        lines = [line.strip() for line in f]
     fields = lines[0].split()
     for f in fields:
         featdict[f] = {}
@@ -18,8 +19,8 @@ def readinventory(filename):
             continue
         linefields = thisline.split()
         if len(linefields) != len(fields) + 1:
-            print("Field length mismatch on line " + i+1)
-            quit()
+            print("Field length mismatch on line " + str(i+1))
+            sys.exit(1)
         phoneme = linefields[0]
         allsegments |= {phoneme}
         for j in range(1,len(linefields)):
@@ -68,36 +69,38 @@ def reccheck(fd, basefeats, basemodes, feats, modes, correct, baseindex):
     return
 
 def greedy(fd, basefeats, basemodes, correct):
-    """Implement greedy search based on C."""
-    feats = []
-    modes = []
-    currentset = allsegments
-    bestfeatures = []
-    # Find most distinguishing feature
+    """Implement greedy search based on C.
+
+    Greedily choose compatible feature specifications that minimize overgeneration,
+    tracking the current candidate set as an intersection of chosen specs.
+    """
+    candidate = allsegments
+    chosen = []
     while True:
         sols = []
         if verbose:
             print("===============================")
-        for f,m in zip(basefeats, basemodes):
-            extrasegs = (currentset & fd[f][m]) - correct
+        for f, m in zip(basefeats, basemodes):
+            newcandidate = candidate & fd[f][m]
+            extrasegs = newcandidate - correct
             length = len(extrasegs)
             if verbose:
                 print("Len of " + fd[f]['name'] + " is " + str(length))
-            sols.append((extrasegs, fd[f]['name'], length, m))
-        bestsol = min(sols, key = lambda x: x[2])
-        currentset = bestsol[0]
-        bestfeatures.append(bestsol[3] + bestsol[1])
+            sols.append((newcandidate, fd[f]['name'], length, m))
+        bestsol = min(sols, key=lambda x: x[2])
+        candidate = bestsol[0]
+        chosen.append(bestsol[3] + bestsol[1])
 
-        if bestsol[2] == 0:
+        if candidate == correct:
             break
-    print("Greedy solution:", bestfeatures)
+    print("Greedy solution:", chosen)
 
 
 ##############################################################################
 
 if len(sys.argv) < 3:
     print("Usage: " + sys.argv[0] + " [-v] inventoryfile phonemeset")
-    quit()
+    sys.exit(1)
 
 verbose = False
 i = 1
